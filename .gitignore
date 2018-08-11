@@ -63,3 +63,6 @@ typings/
 # https files
 cert.pem
 key.pem
+
+# data folder
+.data
