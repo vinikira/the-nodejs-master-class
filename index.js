@@ -1,80 +1,13 @@
-var http = require('http')
-var https = require('https')
-var fs = require('fs')
-var url = require('url')
-var StringDecoder = require('string_decoder').StringDecoder
-var config = require('./lib/config')
-var handlers = require('./lib/handlers')
-var helpers = require('./lib/helpers')
+var server = require('./lib/server')
+var workers = require('./lib/workers')
 
-var httpServer = http.createServer(function (req, res) {
-  unifiedServer(req, res)
-})
+var app = {}
 
-httpServer.listen(config.httpPort, function (arg) {
-  console.log('the HTTP server is running on port ' + config.httpPort)
-})
-
-var httpsServerOptions = {
-  'key': fs.readFileSync('./https/key.pem'),
-  'cert': fs.readFileSync('./https/cert.pem')
+app.init = function () {
+  server.init()
+  workers.init()
 }
 
-var httpsServer = https.createServer(httpsServerOptions, function (req, res) {
-  unifiedServer(req, res)
-})
+app.init()
 
-httpsServer.listen(config.httpsPort, function (arg) {
-  console.log('the HTTPS server is running on port ' + config.httpsPort)
-})
-
-var unifiedServer = function (req, res) {
-  var parsedUrl = url.parse(req.url, true)
-  var path = parsedUrl.pathname
-  var trimmedPath = path.replace(/^\/+|\/+$/g, '')
-  var queryStringObject = parsedUrl.query
-  var method = req.method.toLowerCase()
-  var headers = req.headers
-
-  var decorder = new StringDecoder('utf-8')
-  var buffer = ''
-
-  req.on('data', function (data) {
-    buffer += decorder.write(data)
-  })
-
-  req.on('end', function (arg) {
-    buffer += decorder.end()
-
-    var chooosedHandler = typeof(router[trimmedPath]) !== 'undefined' ? router[trimmedPath] : handlers.notFound
-
-    var data = {
-      trimmedPath: trimmedPath,
-      queryStringObject: queryStringObject,
-      method: method,
-      headers: headers,
-      payload: helpers.parseJsonToObject(buffer)
-    }
-
-    chooosedHandler(data, function (statusCode, payload) {
-      statusCode = typeof(statusCode) === 'number' ? statusCode : 200
-
-      payload = typeof(payload) === 'object' ? payload : {}
-
-      var payloadString = JSON.stringify(payload)
-
-      res.setHeader('Content-type', 'application/json')
-      res.writeHead(statusCode)
-      res.end(payloadString)
-
-      console.log('Returning this response:', statusCode, payloadString)
-    })
-  })
-}
-
-var router = {
-  'ping': handlers.ping,
-  'users': handlers.users,
-  'tokens': handlers.tokens,
-  'checks': handlers.checks
-}
+module.exports = app
