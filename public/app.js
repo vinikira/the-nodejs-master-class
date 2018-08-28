@@ -90,11 +90,16 @@ app.bindForms = function () {
 
       app.client.request(undefined, path, method, undefined, payload, function (statusCode, responsePayload) {
         if (statusCode !== 200) {
-          var error = typeof (responsePayload.Error) === 'string' ? responsePayload.Error : 'An error has ocorred, please try again.'
 
-          document.querySelector('#' + formId + ' .formError').innerHTML = error
+          if (statusCode === 403) {
+            app.logUserOut()
+          } else {
+            var error = typeof (responsePayload.Error) === 'string' ? responsePayload.Error : 'An error has ocorred, please try again.'
 
-          document.querySelector('#' + formId + ' .formError').style.display = 'block'
+            document.querySelector('#' + formId + ' .formError').innerHTML = error
+
+            document.querySelector('#' + formId + ' .formError').style.display = 'block'
+          }
         } else {
           app.formResponseProcessor(formId, payload, responsePayload)
         }
@@ -220,8 +225,32 @@ app.tokenRenewalLoop = function () {
   }, 1000 * 60)
 }
 
+app.bindLogoutButton = function () {
+  document.getElementById('logoutButton').addEventListener('click', function (e) {
+    e.preventDefault()
+
+    app.logUserOut()
+  })
+}
+
+app.logUserOut = function () {
+  var tokenId = typeof (app.config.sessionToken.id) === 'string' ? app.config.sessionToken.id : false
+
+  var queryStringObject = {
+    id: tokenId
+  }
+
+  app.client.request(undefined, 'api/tokens', 'DELETE', queryStringObject, undefined, function (statusCode, responsePayload) {
+    app.setSessionToken(false)
+
+    window.location = '/session/deleted'
+  })
+}
+
 app.init = function () {
   app.bindForms()
+
+  app.bindLogoutButton()
 
   app.getSessionToken()
 
