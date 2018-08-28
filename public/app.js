@@ -68,43 +68,54 @@ app.client.request = function (headers, path, method, queryStringObject, payload
 
 app.bindForms = function () {
   if (document.querySelector('form')) {
-    document.querySelector('form').addEventListener('submit', function (e) {
-      e.preventDefault()
+    var allForms = document.querySelectorAll('form')
 
-      var formId = this.id
-      var path = this.action
-      var method = this.method.toUpperCase()
+    for (var i = 0; i < allForms.length; i++) {
+      allForms[i].addEventListener('submit', function (e) {
+        e.preventDefault()
 
-      document.querySelector('#' + formId + ' .formError').style.display = 'hidden'
+        var formId = this.id
+        var path = this.action
+        var method = this.method.toUpperCase()
 
-      var payload = {}
-      var elements = this.elements
+        document.querySelector('#' + formId + ' .formError').style.display = 'hidden'
 
-      for (var i = 0; i < elements.length; i++) {
-        if (elements[i].type !== 'submit') {
-          var valueOfElement = elements[i].type === 'checkbox' ? elements[i].checked : elements[i].value
-
-          payload[elements[i].name] = valueOfElement
+        if (document.querySelector('#' + formId + ' .formSuccess')) {
+          document.querySelector('#' + formId + ' .formSuccess').style.display = 'none'
         }
-      }
 
-      app.client.request(undefined, path, method, undefined, payload, function (statusCode, responsePayload) {
-        if (statusCode !== 200) {
+        var payload = {}
+        var elements = this.elements
 
-          if (statusCode === 403) {
-            app.logUserOut()
-          } else {
-            var error = typeof (responsePayload.Error) === 'string' ? responsePayload.Error : 'An error has ocorred, please try again.'
+        for (var i = 0; i < elements.length; i++) {
+          if (elements[i].type !== 'submit') {
+            var valueOfElement = elements[i].type === 'checkbox' ? elements[i].checked : elements[i].value
 
-            document.querySelector('#' + formId + ' .formError').innerHTML = error
-
-            document.querySelector('#' + formId + ' .formError').style.display = 'block'
+            if (elements[i].name === '_method') {
+              method = valueOfElement
+            } else {
+              payload[elements[i].name] = valueOfElement
+            }
           }
-        } else {
-          app.formResponseProcessor(formId, payload, responsePayload)
         }
+
+        app.client.request(undefined, path, method, undefined, payload, function (statusCode, responsePayload) {
+          if (statusCode !== 200) {
+            if (statusCode === 403) {
+              app.logUserOut()
+            } else {
+              var error = typeof (responsePayload.Error) === 'string' ? responsePayload.Error : 'An error has ocorred, please try again.'
+
+              document.querySelector('#' + formId + ' .formError').innerHTML = error
+
+              document.querySelector('#' + formId + ' .formError').style.display = 'block'
+            }
+          } else {
+            app.formResponseProcessor(formId, payload, responsePayload)
+          }
+        })
       })
-    })
+    }
   }
 }
 
@@ -132,6 +143,12 @@ app.formResponseProcessor = function (formId, requestPayload, responsePayload) {
   if (formId === 'sessionCreate') {
     app.setSessionToken(responsePayload)
     window.location = '/checks/all'
+  }
+
+  var formsWithSuccessMessage = ['accountEdit1', 'accountEdit2']
+
+  if (formsWithSuccessMessage.indexOf(formId) > -1) {
+    document.querySelector('#' + formId + ' .formSuccess').style.display = 'block'
   }
 }
 
@@ -247,6 +264,44 @@ app.logUserOut = function () {
   })
 }
 
+app.loadDataOnPage = function () {
+  var bodyClasses = document.querySelector('body').classList
+
+  var primaryClass = typeof (bodyClasses[0]) === 'string' ? bodyClasses[0] : false
+
+  if (primaryClass === 'accountEdit') {
+    app.loadAccountEditPage()
+  }
+}
+
+app.loadAccountEditPage = function () {
+  var phone = typeof (app.config.sessionToken.phone) === 'string' ? app.config.sessionToken.phone : false
+
+  if (phone) {
+    var queryStringObject = {
+      phone: phone
+    }
+
+    app.client.request(undefined, 'api/users', 'GET', queryStringObject, undefined, function (statusCode, responsePayload) {
+      if (statusCode === 200) {
+        document.querySelector('#accountEdit1 .firstNameInput').value = responsePayload.firstName
+        document.querySelector('#accountEdit1 .lastNameInput').value = responsePayload.lastName
+        document.querySelector('#accountEdit1 .displayPhoneInput').value = responsePayload.phone
+
+        var hiddenPhoneInputs = document.querySelectorAll('input.hiddenPhoneNumberInput')
+
+        for (var i = 0; i < hiddenPhoneInputs.length; i++) {
+          hiddenPhoneInputs[i].value = responsePayload.phone
+        }
+      } else {
+        app.logUserOut()
+      }
+    })
+  } else {
+    app.logUserOut()
+  }
+}
+
 app.init = function () {
   app.bindForms()
 
@@ -255,6 +310,8 @@ app.init = function () {
   app.getSessionToken()
 
   app.tokenRenewalLoop()
+
+  app.loadDataOnPage()
 }
 
 window.onload = function () {
