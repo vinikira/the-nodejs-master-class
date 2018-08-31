@@ -89,12 +89,27 @@ app.bindForms = function () {
 
         for (var i = 0; i < elements.length; i++) {
           if (elements[i].type !== 'submit') {
-            var valueOfElement = elements[i].type === 'checkbox' ? elements[i].checked : elements[i].value
+            var classOfElement = typeof (elements[i].classList.value) === 'string' && elements[i].classList.value.length > 0 ? elements[i].classList.value : ''
+            var valueOfElement = elements[i].type === 'checkbox' && classOfElement.indexOf('multiselect') === -1 ? elements[i].checked : classOfElement.indexOf('intval') === -1 ? elements[i].value : parseInt(elements[i].value)
+            var elementIsChecked = elements[i].checked
 
-            if (elements[i].name === '_method') {
+            var nameOfElement = elements[i].name
+
+            if (nameOfElement === '_method') {
               method = valueOfElement
             } else {
-              payload[elements[i].name] = valueOfElement
+              if (nameOfElement === 'httpmethod') {
+                nameOfElement = 'method'
+              }
+
+              if (classOfElement.indexOf('multiselect') > -1) {
+                if (elementIsChecked) {
+                  payload[nameOfElement] = typeof (payload[nameOfElement]) === 'object' && payload[nameOfElement] instanceof Array ? payload[nameOfElement] : []
+                  payload[nameOfElement].push(valueOfElement)
+                }
+              } else {
+                payload[nameOfElement] = valueOfElement
+              }
             }
           }
         }
@@ -157,6 +172,10 @@ app.formResponseProcessor = function (formId, requestPayload, responsePayload) {
     app.logUserOut(false)
 
     window.location = '/account/deleted'
+  }
+
+  if (formId === 'checksCreate') {
+    window.location = '/checks/all'
   }
 }
 
