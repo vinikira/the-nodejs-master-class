@@ -99,7 +99,9 @@ app.bindForms = function () {
           }
         }
 
-        app.client.request(undefined, path, method, undefined, payload, function (statusCode, responsePayload) {
+        var queryStringObject = method === 'DELETE' ? payload : {}
+
+        app.client.request(undefined, path, method, queryStringObject, payload, function (statusCode, responsePayload) {
           if (statusCode !== 200) {
             if (statusCode === 403) {
               app.logUserOut()
@@ -149,6 +151,12 @@ app.formResponseProcessor = function (formId, requestPayload, responsePayload) {
 
   if (formsWithSuccessMessage.indexOf(formId) > -1) {
     document.querySelector('#' + formId + ' .formSuccess').style.display = 'block'
+  }
+
+  if (formId === 'accountEdit3') {
+    app.logUserOut(false)
+
+    window.location = '/account/deleted'
   }
 }
 
@@ -250,7 +258,9 @@ app.bindLogoutButton = function () {
   })
 }
 
-app.logUserOut = function () {
+app.logUserOut = function (redirectUser) {
+  redirectUser = typeof (redirectUser) === 'boolean' ? redirectUser : true
+
   var tokenId = typeof (app.config.sessionToken.id) === 'string' ? app.config.sessionToken.id : false
 
   var queryStringObject = {
@@ -260,7 +270,9 @@ app.logUserOut = function () {
   app.client.request(undefined, 'api/tokens', 'DELETE', queryStringObject, undefined, function (statusCode, responsePayload) {
     app.setSessionToken(false)
 
-    window.location = '/session/deleted'
+    if (redirectUser) {
+      window.location = '/session/deleted'
+    }
   })
 }
 
