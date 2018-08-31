@@ -303,6 +303,10 @@ app.loadDataOnPage = function () {
   if (primaryClass === 'accountEdit') {
     app.loadAccountEditPage()
   }
+
+  if (primaryClass === 'checksList') {
+    app.loadChecksListPage()
+  }
 }
 
 app.loadAccountEditPage = function () {
@@ -323,6 +327,69 @@ app.loadAccountEditPage = function () {
 
         for (var i = 0; i < hiddenPhoneInputs.length; i++) {
           hiddenPhoneInputs[i].value = responsePayload.phone
+        }
+      } else {
+        app.logUserOut()
+      }
+    })
+  } else {
+    app.logUserOut()
+  }
+}
+
+app.loadChecksListPage = function () {
+  var phone = typeof (app.config.sessionToken.phone) === 'string' ? app.config.sessionToken.phone : false
+
+  if (phone) {
+    var queryStringObject = {
+      phone: phone
+    }
+
+    app.client.request(undefined, 'api/users', 'GET', queryStringObject, undefined, function (statusCode, responsePayload) {
+      if (statusCode === 200) {
+        var allChecks = typeof (responsePayload.checks) === 'object' && responsePayload.checks instanceof Array && responsePayload.checks.length > 0 ? responsePayload.checks : []
+
+        if (allChecks.length > 0) {
+          allChecks.forEach(function (checkId) {
+            var newQueryStringObject = {
+              id: checkId
+            }
+
+            app.client.request(undefined, 'api/checks', 'GET', newQueryStringObject, undefined, function (newStatusCode, newResponsePayload) {
+              if (statusCode === 200) {
+                var checkData = newResponsePayload
+
+                var table = document.getElementById('checksListTable')
+                var tr = table.insertRow(-1)
+
+                tr.classList.add('checkRow')
+
+                var td0 = tr.insertCell(0)
+                var td1 = tr.insertCell(1)
+                var td2 = tr.insertCell(2)
+                var td3 = tr.insertCell(3)
+                var td4 = tr.insertCell(4)
+
+                td0.innerHTML = checkData.method.toUpperCase()
+                td1.innerHTML = checkData.protocol + '://'
+                td2.innerHTML = checkData.url
+
+                var state = typeof (checkData.state) === 'string' ? checkData.state : 'unknown'
+                td3.innerHTML = state
+                td4.innerHTML = '<a href="/checks/edit?id="' + checkData.id + '>View/Edit/Delete</a>'
+              } else {
+                console.log('Error trying to load check ID: ', checkId)
+              }
+            })
+          })
+
+          if (allChecks.length < 5) {
+            document.getElementById('createCheckCTA').style.display = 'block'
+          }
+        } else {
+          document.getElementById('noChecksMessage').style.display = 'table-row'
+
+          document.getElementById('createCheckCTA').style.display = 'block'
         }
       } else {
         app.logUserOut()
