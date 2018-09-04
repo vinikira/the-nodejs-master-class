@@ -102,6 +102,10 @@ app.bindForms = function () {
                 nameOfElement = 'method'
               }
 
+              if (nameOfElement === 'uid') {
+                nameOfElement = 'id'
+              }
+
               if (classOfElement.indexOf('multiselect') > -1) {
                 if (elementIsChecked) {
                   payload[nameOfElement] = typeof (payload[nameOfElement]) === 'object' && payload[nameOfElement] instanceof Array ? payload[nameOfElement] : []
@@ -162,7 +166,7 @@ app.formResponseProcessor = function (formId, requestPayload, responsePayload) {
     window.location = '/checks/all'
   }
 
-  var formsWithSuccessMessage = ['accountEdit1', 'accountEdit2']
+  var formsWithSuccessMessage = ['accountEdit1', 'accountEdit2', 'checksEdit1']
 
   if (formsWithSuccessMessage.indexOf(formId) > -1) {
     document.querySelector('#' + formId + ' .formSuccess').style.display = 'block'
@@ -175,6 +179,10 @@ app.formResponseProcessor = function (formId, requestPayload, responsePayload) {
   }
 
   if (formId === 'checksCreate') {
+    window.location = '/checks/all'
+  }
+
+  if (formId === 'checksEdit2') {
     window.location = '/checks/all'
   }
 }
@@ -307,6 +315,10 @@ app.loadDataOnPage = function () {
   if (primaryClass === 'checksList') {
     app.loadChecksListPage()
   }
+
+  if (primaryClass === 'checksEdit') {
+    app.loadChecksEditPage()
+  }
 }
 
 app.loadAccountEditPage = function () {
@@ -375,8 +387,9 @@ app.loadChecksListPage = function () {
                 td2.innerHTML = checkData.url
 
                 var state = typeof (checkData.state) === 'string' ? checkData.state : 'unknown'
+
                 td3.innerHTML = state
-                td4.innerHTML = '<a href="/checks/edit?id="' + checkData.id + '>View/Edit/Delete</a>'
+                td4.innerHTML = '<a href="/checks/edit?id=' + checkData.id + '">View/Edit/Delete</a>'
               } else {
                 console.log('Error trying to load check ID: ', checkId)
               }
@@ -397,6 +410,45 @@ app.loadChecksListPage = function () {
     })
   } else {
     app.logUserOut()
+  }
+}
+
+app.loadChecksEditPage = function () {
+  var id = typeof (window.location.href.split('=')[1]) === 'string' && window.location.href.split('=')[1].length > 0 ? window.location.href.split('=')[1] : false
+
+  if (id) {
+    var queryStringObject = {
+      id: id
+    }
+
+    app.client.request(undefined, 'api/checks', 'GET', queryStringObject, undefined, function (statusCode, responsePayload) {
+      if (statusCode === 200) {
+        var hiddenIdInputs = document.querySelectorAll('input.hiddenIdInput')
+
+        for (var i = 0; i < hiddenIdInputs.length; i++) {
+          hiddenIdInputs[i].value = responsePayload.id
+        }
+
+        document.querySelector('#checksEdit1 .displayIdInput').value = responsePayload.id
+        document.querySelector('#checksEdit1 .displayStateInput').value = responsePayload.state
+        document.querySelector('#checksEdit1 .protocolInput').value = responsePayload.protocol
+        document.querySelector('#checksEdit1 .urlInput').value = responsePayload.url
+        document.querySelector('#checksEdit1 .methodInput').value = responsePayload.method
+        document.querySelector('#checksEdit1 .timeoutInput').value = responsePayload.timeoutSeconds
+
+        var successCodeCheckboxes = document.querySelectorAll('#checksEdit1 input.successCodesInput')
+
+        for (var i = 0; i < successCodeCheckboxes.length; i++) {
+          if (responsePayload.successCodes.indexOf(parseInt(successCodeCheckboxes[i].value)) > -1) {
+            successCodeCheckboxes[i].checked = true
+          }
+        }
+      } else {
+        window.location = '/checks/all'
+      }
+    })
+  } else {
+    window.location = '/checks/all'
   }
 }
 
