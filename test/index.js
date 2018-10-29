@@ -1,35 +1,12 @@
 /**
  * Test Runner
  */
-var helpers = require('../lib/helpers')
-var assert = require('assert')
 
 // test runner container
 var _app = {}
 
 _app.tests = {
-  'unit': {}
-}
-
-_app.tests.unit['helpers.getANumber should return a number'] = function (done) {
-  var val = helpers.getANumber()
-
-  assert.equal(typeof (val), 'number')
-  done()
-}
-
-_app.tests.unit['helpers.getANumber should return 1'] = function (done) {
-  var val = helpers.getANumber()
-
-  assert.equal(val, 1)
-  done()
-}
-
-_app.tests.unit['helpers.getNumberOne should return 2'] = function (done) {
-  var val = helpers.getANumber()
-
-  assert.equal(val, 2)
-  done()
+  'unit': require('./unit')
 }
 
 _app.countTests = function () {
