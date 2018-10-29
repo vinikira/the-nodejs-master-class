@@ -2,11 +2,14 @@
  * Test Runner
  */
 
+process.env.NODE_ENV = 'testing'
+
 // test runner container
 var _app = {}
 
 _app.tests = {
-  'unit': require('./unit')
+  'unit': require('./unit'),
+  'integration': require('./api')
 }
 
 _app.countTests = function () {
@@ -99,6 +102,8 @@ _app.processTestReport = function (limit, successess, errors) {
 
   console.log('')
   console.log('-----END TEST REPORT-----')
+
+  process.exit(0)
 }
 
 _app.runTests()
